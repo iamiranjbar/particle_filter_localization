@@ -24,16 +24,13 @@ class Map:
                         self.extract_link_tag(child)                        
             except Exception:
                 pass
-        # print(self.global_map_poses)
-        # print(self.rectangles)
-        # print(self.centers)
     
     def extract_pose_tag(self, child):
         global_map_poses_temp = child.text.split(' ')
         # TODO: Why?!
         if global_map_poses_temp[0] != '0':
             self.global_map_poses = global_map_poses_temp
-    
+
     def extract_link_tag(self, child):
         child_pose = None
         child_geometry = None
@@ -45,32 +42,28 @@ class Map:
         for collision in child.iter('collision'):
             child_geometry = collision[3][0][0].text.split(' ')
 
-
-        point_1 = [float(child_pose[0]) + (float(child_geometry[0]) * math.cos(float(child_pose[5])) / 2)
-                   + float(child_geometry[1]) * math.sin(float(child_pose[5])) / 2 ,
-                   float(child_pose[1]) + float(child_geometry[0]) * math.sin(float(child_pose[5])) / 2
-                   -float(child_geometry[1]) * math.cos(float(child_pose[5])) / 2 ]
-
-        point_2 = [float(child_pose[0]) + float(child_geometry[0]) * math.cos(float(child_pose[5])) / 2
+        point_1 = [float(child_pose[0]) - float(child_geometry[0])*math.cos(float(child_pose[5]))/2
                    -float(child_geometry[1])*math.sin(float(child_pose[5]))/2 ,
-                   float(child_pose[1]) + float(child_geometry[0])*math.sin(float(child_pose[5]))/2
+                   float(child_pose[1]) - float(child_geometry[0])*math.sin(float(child_pose[5]))/2
                    +float(child_geometry[1])*math.cos(float(child_pose[5]))/2]
 
-        point_3 = [float(child_pose[0]) - float(child_geometry[0])*math.cos(float(child_pose[5]))/2
+        point_2 = [float(child_pose[0]) - float(child_geometry[0])*math.cos(float(child_pose[5]))/2
                    +float(child_geometry[1])*math.sin(float(child_pose[5]))/2 ,
                    float(child_pose[1]) - float(child_geometry[0])*math.sin(float(child_pose[5]))/2
                    -float(child_geometry[1])*math.cos(float(child_pose[5]))/2]
 
-        point_4 = [float(child_pose[0]) - float(child_geometry[0])*math.cos(float(child_pose[5]))/2
+        point_3 = [float(child_pose[0]) + (float(child_geometry[0]) * math.cos(float(child_pose[5])) / 2)
+                   + float(child_geometry[1]) * math.sin(float(child_pose[5])) / 2 ,
+                   float(child_pose[1]) + float(child_geometry[0]) * math.sin(float(child_pose[5])) / 2
+                   -float(child_geometry[1]) * math.cos(float(child_pose[5])) / 2 ]
+
+        point_4 = [float(child_pose[0]) + float(child_geometry[0]) * math.cos(float(child_pose[5])) / 2
                    -float(child_geometry[1])*math.sin(float(child_pose[5]))/2 ,
-                   float(child_pose[1]) - float(child_geometry[0])*math.sin(float(child_pose[5]))/2
+                   float(child_pose[1]) + float(child_geometry[0])*math.sin(float(child_pose[5]))/2
                    +float(child_geometry[1])*math.cos(float(child_pose[5]))/2]
 
-
-        self.rectangles.append([point_1 ,point_2 ,point_3 ,point_4])
+        self.rectangles.append([point_1 ,point_2 ,point_3, point_4, point_1])
         self.centers.append([child_pose[0],child_pose[1]])
-        # plt.plot([point_1[0], point_2[0], point_4[0], point_3[0], point_1[0]],[point_1[1], point_2[1], point_4[1], point_3[1], point_1[1]])
-        # plt.show()
 
     def plot(self):
         for rectangle in self.rectangles:
