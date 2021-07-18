@@ -1,7 +1,7 @@
 from shapely.geometry import LineString
 
 
-def find_intersection(point_1,point_2,point_3,point_4):
+def find_intersection(point_1, point_2, point_3, point_4):
 
     line1 = LineString([tuple(point_1), tuple(point_2)])
     line2 = LineString([tuple(point_3), tuple(point_4)])
@@ -9,9 +9,9 @@ def find_intersection(point_1,point_2,point_3,point_4):
     intersection = line1.intersection(line2)
     if intersection:
         point_of_intersection = intersection.x, intersection.y
-        return point_of_intersection
+        return True, point_of_intersection
     else:
-        return False
+        return False, None
 
 def out_of_range(point, offset, boundary):
     first_offset_point = point[0] - offset[0]

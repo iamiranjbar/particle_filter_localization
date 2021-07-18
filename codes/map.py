@@ -75,9 +75,9 @@ class Map:
         lines = []
         for points in self.rectangles:
             lines.append([ points[0] , points[1]] )
-            lines.append([ points[1] , points[3]] )
-            lines.append([ points[3] , points[2]] )
-            lines.append([ points[2] , points[0]] )
+            lines.append([ points[1] , points[2]] )
+            lines.append([ points[2] , points[3]] )
+            lines.append([ points[3] , points[0]] )
         return lines
 
     def get_polygons(self):
@@ -86,8 +86,8 @@ class Map:
             polygons.append(Polygon(
                 [tuple(points[0]),
                 tuple(points[1]),
-                tuple(points[3]),
-                tuple(points[2])
+                tuple(points[2]),
+                tuple(points[3])
                 ]))
         return polygons
 
@@ -104,7 +104,7 @@ class Map:
             )
         return new_rectangles
 
-    def is_collition(self, point):
+    def is_collision(self, point):
         point = Point(tuple(point))
         for rect in self.rectangles:
             if rect.contains(point):
@@ -115,9 +115,10 @@ class Map:
         xs = []
         ys = [] 
 
-        for item in self.centers:
-            xs.append(float(item[0]))
-            ys.append(float(item[1]))
+        for points in self.rectangles:
+            for point in points:
+                xs.append(float(point[0]))
+                ys.append(float(point[1]))
 
         return min(xs), max(xs), min(ys), max(ys)
 
