@@ -2,7 +2,7 @@ import math
 import matplotlib.pyplot as plt
 
 
-def draw_sensor_line(particle, sensor_range=0.4):
+def get_sensor_line(particle, sensor_range=0.4):
     particle_x = particle[0]
     particle_y = particle[1]
     particle_tetha = particle[2]
@@ -11,6 +11,11 @@ def draw_sensor_line(particle, sensor_range=0.4):
     laser_start_point = [particle_x, particle_y]
     laser_end_point = [laser_end_x, laser_end_y]
     sensor_line = [laser_start_point, laser_end_point]
+    return sensor_line
+
+
+def draw_sensor_line(particle):
+    sensor_line = get_sensor_line(particle)
     plt.plot([sensor_line[0][1], sensor_line[1][1]] , [sensor_line[0][0], sensor_line[1][0]])
 
 
