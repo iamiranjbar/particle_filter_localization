@@ -1,3 +1,4 @@
+import math
 from shapely.geometry import LineString
 
 
@@ -23,3 +24,7 @@ def out_of_range(point, offset, boundary):
         return True
     else:
         return False
+
+
+def calculate_distance(first, second):
+    return math.sqrt((first[0]- second[0])**2 + (first[1]- second[1])**2)
