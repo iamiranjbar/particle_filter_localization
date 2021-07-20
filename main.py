@@ -1,6 +1,8 @@
 #!/usr/bin/env python2.7
 
 from codes.model import RobotDecisionState, RobotWorldState
+from codes.map import Map
+from codes.particle import Particle
 import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
@@ -10,8 +12,9 @@ import time
 import math
 import random
 
+MAP_PATH = './worlds/sample1.world'
 
-PI = 3.1415926535897
+PI = math.pi
 
 TRANSLATION_ERROR_TOLERANCE = 0.001 # One millimeters
 TRANSLATION_ERROR_TO_VELOCITY_COEF = 4
@@ -21,7 +24,10 @@ ROTATION_ERROR_TOLERANCE = 0.1 * PI / 180
 ROTATION_ERROR_TO_VELOCITY_COEF = 20
 ROTATION_SPEED_MAX = 10
 
-EXTRA_ANGLE_CHECK = True
+EXTRA_ANGLE_CHECK = False
+EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
+
+PARTICLE_COUNT = 1000
 
 robot_position = RobotWorldState()
 sensor_range = 0
@@ -87,6 +93,29 @@ state_after_stop = RobotDecisionState.pre_thinking
 
 sensor_min_val = 100
 
+map = Map(MAP_PATH)
+particles = []
+for i in range(PARTICLE_COUNT):
+    p = Particle(map)
+    p.initialize()
+    particles.append(p)
+
+def rotate_particles(angle):
+    global particles
+    for p in particles:
+        if not p.is_alive():
+            continue
+        p.rotate(angle)
+
+def move_particles(distance):
+    global particles
+    for p in particles:
+        if not p.is_alive():
+            continue
+        result = p.move(distance)
+        if result == False:
+            p.initialize()
+
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.initial:
         time.sleep(0.1)
@@ -95,14 +124,15 @@ while not rospy.is_shutdown():
     elif robot_state == RobotDecisionState.pre_thinking:
         # time.sleep(5)
 
-        if random.random() < 0.25:
+        if random.random() < 0.5:
             # Random rotate
             robot_state = RobotDecisionState.rotating
 
-            angles_deg = [90, -90, 45, -45]
+            angles_deg = [90, -90, 180]
             angle_deg = random.choice(angles_deg)
             print("Rotate " + str(angle_deg) + "deg")
             rotation_angle = angle_deg * PI / 180
+            rotate_particles(rotation_angle)
             continue
 
 
@@ -110,8 +140,9 @@ while not rospy.is_shutdown():
         if EXTRA_ANGLE_CHECK and sensor_range > 1.5 * translate_distance:
             command_initial_position = robot_position.copy()
             robot_state = RobotDecisionState.rotating
-            rotation_angle = -15 * PI / 180
+            rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
             state_after_stop = RobotDecisionState.making_sure_front_is_accessible_1
+            rotate_particles(rotation_angle)
         else:
             robot_state = RobotDecisionState.thinking
 
@@ -156,14 +187,16 @@ while not rospy.is_shutdown():
     elif robot_state == RobotDecisionState.making_sure_front_is_accessible_1:
         command_initial_position = robot_position.copy()
         robot_state = RobotDecisionState.rotating
-        rotation_angle = 30 * PI / 180
+        rotation_angle = 2 * EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
         state_after_stop = RobotDecisionState.making_sure_front_is_accessible_2
+        rotate_particles(rotation_angle)
 
     elif robot_state == RobotDecisionState.making_sure_front_is_accessible_2:
         command_initial_position = robot_position.copy()
         robot_state = RobotDecisionState.rotating
-        rotation_angle = -15 * PI / 180
+        rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
         state_after_stop = RobotDecisionState.thinking
+        rotate_particles(rotation_angle)
 
     elif robot_state == RobotDecisionState.thinking:
         print("Sensor min val:" + str(sensor_min_val))
@@ -174,10 +207,11 @@ while not rospy.is_shutdown():
         if sensor_min_val > (translate_distance * 1.5):
             robot_state = RobotDecisionState.translating
             print("Move forward")
+            move_particles(translate_distance)
         else:
             robot_state = RobotDecisionState.rotating
 
-            angles_deg = [45]
+            angles_deg = [90, -90, 180]
             angle_deg = random.choice(angles_deg)
             print("Rotate " + str(angle_deg) + "deg")
             rotation_angle = angle_deg * PI / 180

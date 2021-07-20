@@ -2,7 +2,7 @@ import math
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 from shapely.geometry import Point, Polygon
-
+from .map_utils import find_intersection
 
 class Map:
     def __init__(self, map_address):
@@ -104,10 +104,25 @@ class Map:
             )
         return new_rectangles
 
-    def is_collision(self, point):
-        point = Point(tuple(point))
+    def is_invalid_point(self, point):
+        if point == None:
+            return True
+
+        point = Point(point.x, point.y)
         for rect in self.rectangles:
             if rect.contains(point):
+                return True
+
+        min_x, max_x, min_y, max_y = self.boundary()
+        if point.x < min_x or point.x > max_x or point.y < min_y or point.y > max_y:
+            return True
+
+        return False
+
+    def is_invalid_path(self, point, dx, dy):
+        for line in self.get_lines():
+            has_intersection, intersection_point = find_intersection((point.x, point.y), (point.x + dx, point.y + dy), line[0], line[1])
+            if has_intersection:
                 return True
         return False
 
@@ -122,6 +137,6 @@ class Map:
 
         return min(xs), max(xs), min(ys), max(ys)
 
-
-map = Map('./worlds/sample1.world')
-map.plot()
+if __name__ == "__main__":
+    map = Map('./worlds/sample1.world')
+    map.plot()
