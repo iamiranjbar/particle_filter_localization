@@ -93,17 +93,13 @@ class Map:
         return polygons
 
     def add_offset(self, offset):
-        new_rectangles = []
-        for points in self.rectangles: 
-            new_rectangles.append(
-                [  
+        for index, points in enumerate(self.rectangles): 
+            self.rectangles[index] = [  
                     [points[0][0] + offset[0] , points[0][1] + offset[1]],
                     [points[1][0] + offset[0] , points[1][1] + offset[1]],
                     [points[2][0] + offset[0] , points[2][1] + offset[1]],
                     [points[3][0] + offset[0] , points[3][1] + offset[1]]
                 ]
-            )
-        return new_rectangles
 
     def is_invalid_point(self, point):
         if point == None:
