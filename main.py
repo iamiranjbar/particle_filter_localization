@@ -110,6 +110,7 @@ def rotate_particles(angle):
     global particles
     for i in range(len(particles)):
         particles[i][2] += angle
+        # TODO: Add normal noise model
         while particles[i][2] > math.pi:
             particles[i][2] -= 2 * math.pi
         while particles[i][2] < -math.pi:
@@ -120,6 +121,9 @@ def move_particles(distance):
     for i in range(len(particles)):
         dx = distance * math.cos(particles[i][2])
         dy = distance * math.sin(particles[i][2])
+
+        # TODO: Add normal noise model
+
         particles[i][0] += dx
         particles[i][1] += dy
 
