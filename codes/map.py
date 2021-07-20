@@ -10,6 +10,7 @@ class Map:
         self.centers = []
         self.global_map_poses = []
         self.parse_tree(map_address)
+        self.add_offset()
 
     def parse_tree(self, map_address):
         tree = ET.parse(map_address)
@@ -26,9 +27,9 @@ class Map:
                 pass
     
     def extract_pose_tag(self, child):
-        global_map_poses_temp = child.text.split(' ')
+        global_map_poses_temp = [float(x) for x in child.text.split(' ')]
         # TODO: Why?!
-        if global_map_poses_temp[0] != '0':
+        if global_map_poses_temp[0] != 0:
             self.global_map_poses = global_map_poses_temp
 
     def extract_link_tag(self, child):
@@ -92,18 +93,15 @@ class Map:
                 ]))
         return polygons
 
-    def add_offset(self, offset):
-        new_rectangles = []
-        for points in self.rectangles: 
-            new_rectangles.append(
-                [  
+    def add_offset(self):
+        offset = self.global_map_poses
+        for index, points in enumerate(self.rectangles): 
+            self.rectangles[index] = [
                     [points[0][0] + offset[0] , points[0][1] + offset[1]],
                     [points[1][0] + offset[0] , points[1][1] + offset[1]],
                     [points[2][0] + offset[0] , points[2][1] + offset[1]],
                     [points[3][0] + offset[0] , points[3][1] + offset[1]]
                 ]
-            )
-        return new_rectangles
 
     def is_invalid_point(self, point):
         if point == None:
