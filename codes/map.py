@@ -104,16 +104,13 @@ class Map:
                 ]
 
     def is_invalid_point(self, point):
-        if point == None:
-            return True
-
         point = Point(point[0], point[1])
         for rect in self.get_polygons():
             if rect.contains(point):
                 return True
 
         min_x, max_x, min_y, max_y = self.boundary()
-        if point[0] < min_x or point[0] > max_x or point[1] < min_y or point[1] > max_y:
+        if point.x < min_x or point.x > max_x or point.y < min_y or point.y > max_y:
             return True
 
         return False
