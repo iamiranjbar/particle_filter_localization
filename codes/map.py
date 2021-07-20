@@ -92,9 +92,10 @@ class Map:
                 ]))
         return polygons
 
-    def add_offset(self, offset):
+    def add_offset(self):
+        offset = self.global_map_poses
         for index, points in enumerate(self.rectangles): 
-            self.rectangles[index] = [  
+            self.rectangles[index] = [
                     [points[0][0] + offset[0] , points[0][1] + offset[1]],
                     [points[1][0] + offset[0] , points[1][1] + offset[1]],
                     [points[2][0] + offset[0] , points[2][1] + offset[1]],
