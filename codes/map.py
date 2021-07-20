@@ -10,6 +10,7 @@ class Map:
         self.centers = []
         self.global_map_poses = []
         self.parse_tree(map_address)
+        self.add_offset()
 
     def parse_tree(self, map_address):
         tree = ET.parse(map_address)
