@@ -69,7 +69,8 @@ class Map:
         for rectangle in self.rectangles:
             rectangle = list(zip(*rectangle))
             plt.plot(rectangle[1], rectangle[0], c='black')
-        plt.show()
+        #plt.show()
+
 
     def get_lines(self):
         lines = []
@@ -109,7 +110,7 @@ class Map:
             return True
 
         point = Point(point.x, point.y)
-        for rect in self.rectangles:
+        for rect in self.get_polygons():
             if rect.contains(point):
                 return True
 

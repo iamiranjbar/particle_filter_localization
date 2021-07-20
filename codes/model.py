@@ -17,6 +17,9 @@ class RobotWorldState:
         self.y = y
         self.theta = theta
 
+    def get_state_list(self):
+        return [self.x, self.y, self.theta]
+
     def copy(self):
         return RobotWorldState(x=self.x, y=self.y, theta=self.theta)
        

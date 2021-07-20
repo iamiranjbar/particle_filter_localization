@@ -3,6 +3,8 @@
 from codes.model import RobotDecisionState, RobotWorldState
 from codes.map import Map
 from codes.particle import Particle
+from codes.map_utils import find_intersection, calculate_distance
+from codes.visualization import get_sensor_line, draw_status, draw_sensor_line
 import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
@@ -11,6 +13,10 @@ from tf.transformations import euler_from_quaternion
 import time
 import math
 import random
+import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
 
 MAP_PATH = './worlds/sample1.world'
 
@@ -180,7 +186,55 @@ while not rospy.is_shutdown():
 
         vel_msg = get_stop_vel_msg()
         velocity_publisher.publish(vel_msg)
+
+        print("Sampling particles")
         robot_state = state_after_stop
+        map_lines = map.get_lines()
+        prob_sum = 0
+        for i in range(len(particles)):
+            if not particles[i].is_alive():
+                particles[i].weight = 0
+                continue
+
+            min_distance = 0.4
+            sensor_line = get_sensor_line(particles[i].get_state_list())
+            for line in map_lines:
+                does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
+                distance = 0.4
+                if does_intersect:
+                    distance = calculate_distance(particles[i].get_state_list(), intersection_point)
+                    min_distance = min(min_distance, distance)
+
+            # when no intersection, is 0.4 still correct?
+            particles[i].weight = stats.norm(min_distance, 0.01049).pdf(sensor_range)
+            prob_sum += particles[i].weight
+        
+        for i in range(len(particles)):
+            particles[i].weight /= prob_sum
+
+        print(sum([x.weight for x in particles]))
+
+        indexes = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=[x.weight for x in particles])
+        particles = [particles[i].copy() for i in indexes]
+
+        # add random particles
+        for i in range(int(0.2 * PARTICLE_COUNT)):
+            p = Particle(map)
+            p.initialize()
+            particles.append(p)
+
+        # Visualize
+        print("Drawing")
+        plt.clf()               
+        plt.gca().invert_yaxis()
+        map.plot()
+        for p in particles:
+            draw_status(p.get_state_list(), 'red')
+        draw_status(robot_position.get_state_list(), 'blue')
+        draw_sensor_line(robot_position.get_state_list())
+
+        plt.draw()
+        plt.pause(0.2)
 
         print("Stop")
 
