@@ -33,7 +33,7 @@ ROTATION_SPEED_MAX = 10
 EXTRA_ANGLE_CHECK = False
 EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
 
-PARTICLE_COUNT = 100
+PARTICLE_COUNT = 500
 
 robot_position = RobotWorldState()
 sensor_range = 0
@@ -194,7 +194,7 @@ while not rospy.is_shutdown():
         prob_sum = 0
         weights = np.zeros(len(particles))
         for i in range(len(particles)):
-            # t = time.time()
+            t = time.time()
             if map.is_invalid_point(particles[i]):
                 weights[i] = 0
                 continue
@@ -204,7 +204,7 @@ while not rospy.is_shutdown():
             t = time.time()
             sensor_line = get_sensor_line(particles[i])
 
-            #print("a" + str(time.time() - t))
+            # print("a" + str(time.time() - t))
             t = time.time()
 
             for line in map_lines:
@@ -214,12 +214,12 @@ while not rospy.is_shutdown():
                     distance = calculate_distance(particles[i], intersection_point)
                     min_distance = min(min_distance, distance)
 
-            #print("b" + str(time.time() - t))
+            # print("b" + str(time.time() - t))
             t = time.time()
             # when no intersection, is 0.4 still correct?
             weights[i] = stats.norm(min_distance, 0.01049).pdf(sensor_range)
             prob_sum += weights[i]
-            #print("c" + str(time.time() - t))
+            # print("c" + str(time.time() - t))
         
         print("a")
 
@@ -230,8 +230,8 @@ while not rospy.is_shutdown():
 
         print("b")
 
-        indexes = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=weights)
-        particles = np.array([particles[i] for i in indexes])
+        # indexes = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=weights)
+        # particles = np.array([particles[i] for i in indexes])
 
         print("c")
 
