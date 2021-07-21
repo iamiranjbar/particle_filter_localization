@@ -42,6 +42,7 @@ ACTION_TIMEOUT = 3
 PARTICLE_COUNT = 500
 
 robot_position = RobotWorldState()
+robot_pos_on_estimate = robot_position.copy()
 sensor_range = 0
 
 def new_odometry(msg):
@@ -318,15 +319,15 @@ def best_select_resampling(particles, weights):
     return particles
 
 def visualize():
-    global map, robot_position, estimate
+    global map, robot_pos_on_estimate, estimate
     plt.clf()               
     plt.gca().invert_yaxis()
     map.plot()
     for particle in particles:
         draw_status(particle, 'red')
 
-    draw_status(robot_position.get_state_list(), 'blue')
-    draw_sensor_line(robot_position.get_state_list())
+    draw_status(robot_pos_on_estimate.get_state_list(), 'blue')
+    draw_sensor_line(robot_pos_on_estimate.get_state_list())
     if len(estimate) > 0:
         draw_status(estimate, 'green')
 
@@ -365,7 +366,7 @@ def is_halted():
     return False
 
 def update():
-    global robot_state, particles, rotation_angle, translate_distance, estimate
+    global robot_state, particles, rotation_angle, translate_distance, estimate, robot_pos_on_estimate, robot_position
 
     if rotation_angle == 0 and translate_distance == 0:
         robot_state = RobotDecisionState.movement
@@ -377,6 +378,7 @@ def update():
 
     # estimate = get_best_particles_average_estimate(weights, verbose=True)
     estimate = get_best_particle_min_sum_distance(verbose=True)
+    robot_pos_on_estimate = robot_position.copy()
     if is_halted():
         return
 
