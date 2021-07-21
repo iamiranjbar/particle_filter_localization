@@ -27,8 +27,7 @@ class Map:
     
     def extract_pose_tag(self, child):
         global_map_poses_temp = [float(x) for x in child.text.split(' ')]
-        if global_map_poses_temp[0] != 0:
-            self.global_map_poses = global_map_poses_temp
+        self.global_map_poses = global_map_poses_temp
 
     def extract_link_tag(self, child):
         child_pose = None
