@@ -219,10 +219,9 @@ def calculate_particle_weights():
         if map.is_invalid_point(particles[i]):
             weights[i] = 0
             continue
+
         min_distance = 0.4
-
         sensor_line = get_sensor_line(particles[i])
-
         for line in map_lines:
             does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
             distance = 0.4
@@ -230,7 +229,6 @@ def calculate_particle_weights():
                 distance = calculate_distance(particles[i], intersection_point)
                 min_distance = min(min_distance, distance)
 
-        # TODO: when no intersection, is 0.4 still correct?
         weights[i] = stats.norm(min_distance, 0.01049).pdf(sensor_range)
         prob_sum += weights[i]
 
