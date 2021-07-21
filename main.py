@@ -68,12 +68,12 @@ def generate_random_particles(size):
     new_particles = np.empty((size, 3))
     new_particles[:, 0] = np.random.uniform(min_x, max_x, size=size)
     new_particles[:, 1] = np.random.uniform(min_y, max_y, size=size)
-    new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=size) * math.pi / 180.0
+    new_particles[:, 2] = np.random.choice([-90, 90, 180, 0, 45, -45, 135, -135], size=size) * math.pi / 180.0
     for index in range(len(new_particles)):
         while map.is_invalid_point(new_particles[index]):
             new_particles[index, 0] = np.random.uniform(min_x, max_x)
             new_particles[index, 1] = np.random.uniform(min_y, max_y)
-            new_particles[index, 2] = np.random.choice([-90, 90, 180, 0]) * math.pi / 180.0
+            new_particles[index, 2] = np.random.choice([-90, 90, 180, 0, 45, -45, 135, -135]) * math.pi / 180.0
     return new_particles
 
 
@@ -97,9 +97,9 @@ translation_translation_variance = {0: 0, 0.05: 3.5e-5, 0.1: 3.3e-5, 0.15:3.2e-5
 translation_rotation_mean = {0: 0, 0.05: 0.03, 0.1: 0.05, 0.15: 0.1, 0.2: 0.15, 0.3: 0.19}
 translation_rotation_variance = {0: 0, 0.05: 0.05, 0.1: 0.09, 0.15: 0.2, 0.2: 0.36, 0.3: 0.67}
 
-rotation_rotation_variance = {0: 0, 90: 0.005, -90: 0.006}
-rotation_translation_mean = {0: 0, 90: 0.0002, -90: 0.0001}
-rotation_translation_variance = {0: 0, 90: 0.0013, -90: 0.0018}
+rotation_rotation_variance = {0: 0, 90: 0.005, -90: 0.006, 45: 0.002, -45: 0.003}
+rotation_translation_mean = {0: 0, 90: 0.0002, -90: 0.0001, 45: 0.00005, -45: 0.00006}
+rotation_translation_variance = {0: 0, 90: 0.0013, -90: 0.0018, 45: 0.0007, -45: 0.0009}
 
 def get_stop_vel_msg():
     vel_msg = Twist()
@@ -195,7 +195,7 @@ def front_is_accessible_2():
 
 def choose_random_rotation():
     global rotation_angle, robot_position, command_initial_position, command_time
-    angles_deg = [0, 90, -90]
+    angles_deg = [0, 90, -90, 45, -45]
     angle_deg = random.choice(angles_deg)
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
