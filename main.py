@@ -18,7 +18,6 @@ from codes.map_utils import find_intersection, calculate_distance
 from codes.visualization import get_sensor_line, draw_status, draw_sensor_line
 
 
-
 MAP_PATH = './worlds/sample1.world'
 
 PI = math.pi
@@ -36,12 +35,28 @@ EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
 
 PARTICLE_COUNT = 500
 
-
 robot_position = RobotWorldState()
 sensor_range = 0
-odometry_counter = 0 # TODO: Why?!
-robot_state = RobotDecisionState.movement
 
+def new_odometry(msg):
+    global robot_position
+ 
+    x = msg.pose.pose.position.x
+    y = msg.pose.pose.position.y
+ 
+    rot_q = msg.pose.pose.orientation
+    (_, _, theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
+
+    robot_position.x = x
+    robot_position.y = y
+    robot_position.theta = theta
+
+def laser_callback(msg):
+    global sensor_range
+    sensor_range = msg.range
+
+
+robot_state = RobotDecisionState.movement
 rospy.init_node('vector_controller', anonymous=True)
 odom_sub = rospy.Subscriber("/odom", Odometry, new_odometry)
 laser_sub = rospy.Subscriber('/vector/laser', Range, laser_callback)
@@ -60,25 +75,6 @@ particles[:, 0] = np.random.uniform(min_x, max_x, size=PARTICLE_COUNT) + map.glo
 particles[:, 1] = np.random.uniform(min_x, max_x, size=PARTICLE_COUNT) + map.global_map_poses[1]
 particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=PARTICLE_COUNT) * math.pi / 180.0
 
-
-def new_odometry(msg):
-    global robot_position
-    global odometry_counter
- 
-    x = msg.pose.pose.position.x
-    y = msg.pose.pose.position.y
- 
-    rot_q = msg.pose.pose.orientation
-    (_, _, theta) = euler_from_quaternion([rot_q.x, rot_q.y, rot_q.z, rot_q.w])
-
-    robot_position.x = x
-    robot_position.y = y
-    robot_position.theta = theta
-    odometry_counter += 1
-
-def laser_callback(msg):
-    global sensor_range
-    sensor_range = msg.range
 
 def get_stop_vel_msg():
     vel_msg = Twist()
@@ -168,7 +164,7 @@ def choose_random_translation():
 
 def rotate():
     global sensor_min_val, robot_state
-    sensor_min_val = min(sensor_min_val, sensor_range) # TODO: Why?
+
     rotation_final_angle = command_initial_position.theta + rotation_angle
     theta_error = normalize_angle(rotation_final_angle - robot_position.theta)
 
@@ -223,10 +219,10 @@ def calculate_particle_weights():
         # TODO: when no intersection, is 0.4 still correct?
         weights[i] = stats.norm(min_distance, 0.01049).pdf(sensor_range)
         prob_sum += weights[i]
-    
 
     for i in range(len(particles)):
         weights[i] /= prob_sum
+
     return weights
 
 def generate_random_particles(size):
@@ -275,6 +271,7 @@ def check_for_halting():
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
         choose_random_rotation()
+        choose_random_translation()
         robot_state = RobotDecisionState.rotating
 
     elif robot_state == RobotDecisionState.rotating:
@@ -284,8 +281,8 @@ while not rospy.is_shutdown():
         translate()
 
     elif robot_state == RobotDecisionState.updating:
-        rotate_particles(translate_distance)
-        move_particles(rotation_angle)
+        rotate_particles(rotation_angle)
+        move_particles(translate_distance)
         update()
         check_for_halting()
     
