@@ -68,8 +68,8 @@ def generate_random_particles(size):
     new_particles[:, 0] = np.random.uniform(min_x, max_x, size=size)
     new_particles[:, 1] = np.random.uniform(min_y, max_y, size=size)
     new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=size) * math.pi / 180.0
-    for index, particle in enumerate(new_particles):
-        while map.is_invalid_point(particle):
+    for index in range(len(new_particles)):
+        while map.is_invalid_point(new_particles[index]):
             new_particles[index, 0] = np.random.uniform(min_x, max_x)
             new_particles[index, 1] = np.random.uniform(min_y, max_y)
             new_particles[index, 2] = np.random.choice([-90, 90, 180, 0]) * math.pi / 180.0
