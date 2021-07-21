@@ -305,7 +305,8 @@ def visualize():
 
     draw_status(robot_position.get_state_list(), 'blue')
     draw_sensor_line(robot_position.get_state_list())
-    draw_status(estimate, 'green')
+    if len(estimate) > 0:
+        draw_status(estimate, 'green')
 
     plt.draw()
     plt.pause(0.2)
