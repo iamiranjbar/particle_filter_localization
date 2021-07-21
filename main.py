@@ -80,8 +80,6 @@ command_initial_position = robot_position.copy()
 translate_distance = 0
 rotation_angle = 0
 
-sensor_min_val = 100 # TODO: What is that?
-
 map = Map(MAP_PATH)
 particles = generate_random_particles(PARTICLE_COUNT)
 
@@ -178,7 +176,7 @@ def choose_random_translation():
     print("Translate " + str(translate_distance) + " meter")
 
 def rotate():
-    global sensor_min_val, robot_state, command_initial_position
+    global robot_state, command_initial_position
 
     rotation_final_angle = command_initial_position.theta + rotation_angle
     theta_error = normalize_angle(rotation_final_angle - robot_position.theta)
@@ -250,6 +248,26 @@ def roullete_wheel_resampling(particles, weights):
     particles = np.concatenate([particles, new_particles])
     return particles
 
+def best_select_resampling(particles, weights):
+    best_indices = (-weights).argsort()[:int(0.3 * PARTICLE_COUNT)]
+    best_particles = particles[best_indices]
+
+    new_particles_count = int(0.2 * PARTICLE_COUNT)
+    new_particles = generate_random_particles(new_particles_count)
+
+    best_around_count = PARTICLE_COUNT - len(best_indices) - new_particles_count
+    best_around_indices = np.random.choice(best_particles.shape[0], best_around_count)  
+    
+    best_around_particles = np.empty((best_around_count, 3))
+    best_around_particles[:, 0] = np.random.uniform(-0.05, 0.05, size=best_around_count) 
+    best_around_particles[:, 1] = np.random.uniform(-0.05, 0.05, size=best_around_count) 
+    best_around_particles[:, 2] = 0
+
+    best_around_particles += best_particles[best_around_indices]
+    particles = np.concatenate([best_particles, new_particles, best_around_particles])
+
+    return particles
+
 def visualize():
     global map, robot_position
     plt.clf()               
@@ -268,7 +286,8 @@ def update():
     global robot_state, particles
 
     weights = calculate_particle_weights()
-    particles = roullete_wheel_resampling(particles, weights)
+    # particles = roullete_wheel_resampling(particles, weights)
+    particles = best_select_resampling(particles, weights)
     visualize()
 
 def check_for_halting():
@@ -277,7 +296,6 @@ def check_for_halting():
 
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
-        # time.sleep(5)
         choose_random_rotation()
         robot_state = RobotDecisionState.rotating
 
