@@ -36,6 +36,8 @@ ROTATION_SPEED_MAX = 10
 EXTRA_ANGLE_CHECK = False
 EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
 
+ACTION_TIMEOUT = 3
+
 PARTICLE_COUNT = 500
 
 robot_position = RobotWorldState()
@@ -79,6 +81,7 @@ odom_sub = rospy.Subscriber("/odom", Odometry, new_odometry)
 laser_sub = rospy.Subscriber('/vector/laser', Range, laser_callback)
 velocity_publisher = rospy.Publisher('/vector/cmd_vel', Twist, queue_size=10)
 
+command_time = 0
 command_initial_position = robot_position.copy()
 translate_distance = 0
 rotation_angle = 0
@@ -134,10 +137,11 @@ def move_particles(distance):
         particles[i][2] = normalize_angle(particles[i][2])
 
 def robot_extra_check():
-    global sensor_min_val, command_initial_position, robot_state, state_after_stop
+    global sensor_min_val, command_initial_position, robot_state, state_after_stop, command_time
     sensor_min_val = sensor_range
     if EXTRA_ANGLE_CHECK and sensor_range > 1.5 * translate_distance:
         command_initial_position = robot_position.copy()
+        command_time = time.time()
         robot_state = RobotDecisionState.rotating
         rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
         state_after_stop = RobotDecisionState.making_sure_front_is_accessible_1
@@ -146,36 +150,40 @@ def robot_extra_check():
         robot_state = RobotDecisionState.thinking
 
 def front_is_accessible_1():
-    global command_initial_position, robot_state, state_after_stop
+    global command_initial_position, robot_state, state_after_stop, command_time
     command_initial_position = robot_position.copy()
+    command_time = time.time()
     robot_state = RobotDecisionState.rotating
     rotation_angle = 2 * EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
     state_after_stop = RobotDecisionState.making_sure_front_is_accessible_2
     rotate_particles(rotation_angle)
 
 def front_is_accessible_2():
-    global command_initial_position, robot_state, state_after_stop
+    global command_initial_position, robot_state, state_after_stop, command_time
     command_initial_position = robot_position.copy()
+    command_time = time.time()
     robot_state = RobotDecisionState.rotating
     rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
     state_after_stop = RobotDecisionState.thinking
     rotate_particles(rotation_angle)
 
 def choose_random_rotation():
-    global rotation_angle, robot_position, command_initial_position
+    global rotation_angle, robot_position, command_initial_position, command_time
     angles_deg = [0, 90, -90]
     angle_deg = random.choice(angles_deg)
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
     command_initial_position = robot_position.copy()
+    command_time = time.time()
 
 def choose_random_translation():
-    global translate_distance, sensor_range, robot_position, command_initial_position
+    global translate_distance, sensor_range, robot_position, command_initial_position, command_time
     translate_distances = [0, 0.05, 0.1, 0.15]
     translate_distance = random.choice(translate_distances)
     if sensor_range < (translate_distance + 0.025):
         translate_distance = 0
     command_initial_position = robot_position.copy()
+    command_time = time.time()
     print("Translate " + str(translate_distance) + " meter")
 
 def rotate():
@@ -184,7 +192,7 @@ def rotate():
     rotation_final_angle = command_initial_position.theta + rotation_angle
     theta_error = normalize_angle(rotation_final_angle - robot_position.theta)
 
-    if abs(theta_error) < ROTATION_ERROR_TOLERANCE:
+    if abs(theta_error) < ROTATION_ERROR_TOLERANCE or time.time() - command_time > ACTION_TIMEOUT:
         vel_msg = get_stop_vel_msg()
         velocity_publisher.publish(vel_msg)
         time.sleep(0.1)
@@ -197,12 +205,12 @@ def rotate():
     velocity_publisher.publish(vel_msg)
 
 def translate():
-    global robot_state, translate_distance, command_initial_position
+    global robot_state, translate_distance, command_initial_position, command_time
     translation_error = translate_distance - math.sqrt(
             math.pow(robot_position.x - command_initial_position.x, 2) + 
             math.pow(robot_position.y - command_initial_position.y, 2))
 
-    if abs(translation_error) <= TRANSLATION_ERROR_TOLERANCE:
+    if abs(translation_error) <= TRANSLATION_ERROR_TOLERANCE or time.time() - command_time > ACTION_TIMEOUT:
         vel_msg = get_stop_vel_msg()
         velocity_publisher.publish(vel_msg)
         time.sleep(0.1)
