@@ -2,7 +2,6 @@ import math
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 from shapely.geometry import Point, Polygon
-from .map_utils import find_intersection
 
 class Map:
     def __init__(self, map_address):
@@ -100,7 +99,8 @@ class Map:
                     [points[0][0] + offset[0] , points[0][1] + offset[1]],
                     [points[1][0] + offset[0] , points[1][1] + offset[1]],
                     [points[2][0] + offset[0] , points[2][1] + offset[1]],
-                    [points[3][0] + offset[0] , points[3][1] + offset[1]]
+                    [points[3][0] + offset[0] , points[3][1] + offset[1]],
+                    [points[0][0] + offset[0] , points[0][1] + offset[1]],
                 ]
 
     def is_invalid_point(self, point):
@@ -113,13 +113,6 @@ class Map:
         if point.x < min_x or point.x > max_x or point.y < min_y or point.y > max_y:
             return True
 
-        return False
-
-    def is_invalid_path(self, point, dx, dy):
-        for line in self.get_lines():
-            has_intersection, intersection_point = find_intersection((point.x, point.y), (point.x + dx, point.y + dy), line[0], line[1])
-            if has_intersection:
-                return True
         return False
 
     def boundary(self):
@@ -136,3 +129,4 @@ class Map:
 if __name__ == "__main__":
     map = Map('./worlds/sample1.world')
     map.plot()
+    plt.show()
