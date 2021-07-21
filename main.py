@@ -86,6 +86,7 @@ command_time = 0
 command_initial_position = robot_position.copy()
 translate_distance = 0
 rotation_angle = 0
+map_lines = []
 
 map = Map(MAP_PATH)
 particles = generate_random_particles(PARTICLE_COUNT)
@@ -245,7 +246,6 @@ def translate():
     vel_msg.linear.x = min(TRANSLATION_SPEED_MAX, translation_error * TRANSLATION_ERROR_TO_VELOCITY_COEF)
     velocity_publisher.publish(vel_msg)
 
-map_lines = []
 def calculate_particle_weight(particle):
     global map_lines, sensor_range, map
     
