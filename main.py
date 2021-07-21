@@ -346,6 +346,7 @@ def update():
     global robot_state, particles, rotation_angle, translate_distance, estimate
 
     if rotation_angle == 0 and translate_distance == 0:
+        robot_state = RobotDecisionState.movement
         return
 
     print("Updating particles")
