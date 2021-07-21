@@ -311,32 +311,14 @@ def visualize():
     plt.draw()
     plt.pause(0.2)
 
-def update():
-    global robot_state, particles, rotation_angle, translate_distance
-
-    if rotation_angle == 0 and translate_distance == 0:
-        return
-
-    print("Updating particles")
-    t = time.time()
-    weights = calculate_particle_weights()
-    # particles = roullete_wheel_resampling(particles, weights)
-    particles = best_select_resampling(particles, weights)
-    duration = time.time() - t
-    print("Particles updated in " + str(duration) + "s")
-
-    print("")
-
-def get_best_particles_average_estimate(verbose=False):
+def get_best_particles_average_estimate(weights, verbose=False):
     global particles
-    distances = np.zeros(len(particles))
-    for index, particle in enumerate(particles):
-        distances[index] = sum(np.sqrt((particle[0] - particles[:, 0])**2 + (particle[1] - particles[:, 1])**2))
-    best_indices = (-distances).argsort()[:int(0.3 * PARTICLE_COUNT)]
+    best_indices = (-weights).argsort()[:int(0.3 * PARTICLE_COUNT)]
     best_particles = particles[best_indices]
     estimate_x = average(best_particles[:, 0])
     estimate_y = average(best_particles[:, 1])
-    estimate_theta = average(best_particles[:, 2])
+    angle_list = list(best_particles[:, 2])
+    estimate_theta = max(set(angle_list), key=angle_list.count)
     estimate = np.array([estimate_x, estimate_y, estimate_theta])
     if verbose:
         print("Estimate: (" + str(estimate_x) + ", " + str(estimate_y) + ", " + str(estimate_theta) +")")
@@ -355,9 +337,30 @@ def get_best_particle_min_sum_distance(verbose=False):
 
     return estimate
 
-def check_for_halting(estimate):
-    global robot_state
+def is_halted():
+    global robot_state, estimate
     robot_state = RobotDecisionState.movement
+    return False
+
+def update():
+    global robot_state, particles, rotation_angle, translate_distance, estimate
+
+    if rotation_angle == 0 and translate_distance == 0:
+        return
+
+    print("Updating particles")
+    t = time.time()
+    weights = calculate_particle_weights()
+
+    estimate = get_best_particles_average_estimate(weights, verbose=True)
+    # estimate = get_best_particle_min_sum_distance(verbose=True)
+    if is_halted():
+        return
+
+    # particles = roullete_wheel_resampling(particles, weights)
+    particles = best_select_resampling(particles, weights)
+    duration = time.time() - t
+    print("Particles updated in " + str(duration) + "s")
 
 def visualize_loop():
     while True:
@@ -382,9 +385,6 @@ while not rospy.is_shutdown():
         rotate_particles(rotation_angle)
         move_particles(translate_distance)
         update()
-        estimate = get_best_particles_average_estimate(verbose=True)
-        # estimate = get_best_particle_min_sum_distance(verbose=True)
-        check_for_halting(estimate)
     
     elif robot_state == RobotDecisionState.halt:
         pass
