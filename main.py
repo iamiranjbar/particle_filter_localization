@@ -353,8 +353,8 @@ def update():
     t = time.time()
     weights = calculate_particle_weights()
 
-    estimate = get_best_particles_average_estimate(weights, verbose=True)
-    # estimate = get_best_particle_min_sum_distance(verbose=True)
+    # estimate = get_best_particles_average_estimate(weights, verbose=True)
+    estimate = get_best_particle_min_sum_distance(verbose=True)
     if is_halted():
         return
 
