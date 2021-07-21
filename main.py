@@ -5,6 +5,7 @@ import random
 import traceback
 import numpy as np
 import scipy.stats as stats
+from threading import Thread
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 
@@ -310,13 +311,19 @@ def update():
     weights = calculate_particle_weights()
     # particles = roullete_wheel_resampling(particles, weights)
     particles = best_select_resampling(particles, weights)
-    print("Visualizing")
-    visualize()
     print("Done")
 
 def check_for_halting():
     global robot_state
     robot_state = RobotDecisionState.movement
+
+def visualize_loop():
+    while True:
+        visualize()
+        time.sleep(2)
+
+visualize_loop_thread = Thread(target=visualize_loop)
+visualize_loop_thread.start()
 
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
