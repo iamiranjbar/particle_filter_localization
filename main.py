@@ -307,7 +307,7 @@ def get_best_particles_average_estimate(verbose=False):
     estimate_theta = average(best_particles[:, 2])
     estimate = np.array([estimate_x, estimate_y, estimate_theta])
     if verbose:
-        print(f"Estimate: ({estimate_x}, {estimate_y}. {estimate_theta})")
+        print("Estimate: (" + str(estimate_x) + ", " + str(estimate_y) + ", " + str(estimate_theta) +")")
 
     return estimate
 
@@ -319,7 +319,7 @@ def get_best_particle_min_sum_distance(verbose=False):
     min_sum_distance_index = np.argmin(distances)
     estimate = particles[min_sum_distance_index]
     if verbose:
-        print(f"Estimate: ({estimate[0]}, {estimate[1]}. {estimate[2]})")
+        print("Estimate: (" + str(estimate[0]) + ", " + str(estimate[1]) + ", " + str(estimate[2]) +")")
 
     return estimate
 
