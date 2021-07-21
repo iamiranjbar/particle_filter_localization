@@ -22,7 +22,7 @@ from codes.map_utils import find_intersection, calculate_distance
 from codes.visualization import get_sensor_line, draw_status, draw_sensor_line
 
 
-MAP_PATH = './worlds/sample1.world'
+MAP_PATH = './worlds/sample4.world'
 
 PI = math.pi
 
@@ -39,7 +39,7 @@ EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
 
 ACTION_TIMEOUT = 3
 
-PARTICLE_COUNT = 500
+PARTICLE_COUNT = 1000
 
 robot_position = RobotWorldState()
 robot_pos_on_estimate = robot_position.copy()
@@ -196,7 +196,7 @@ def front_is_accessible_2():
 def choose_random_rotation():
     global rotation_angle, robot_position, command_initial_position, command_time
     angles_deg = [0, 90, -90]
-    angle_deg = np.random.choice(angles_deg, p=[0.6, 0.2, 0.2])
+    angle_deg = np.random.choice(angles_deg)
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
     command_initial_position = robot_position.copy()
@@ -370,7 +370,7 @@ def is_halted():
     close_enough_count = 0
     for p in particles:
         dist = calculate_distance(estimate, p)
-        if dist < 0.05:
+        if dist < 0.1:
             close_enough_count += 1
 
     print("close_enough_count: " + str(close_enough_count))
