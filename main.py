@@ -256,11 +256,11 @@ def best_select_resampling(particles, weights):
     new_particles = generate_random_particles(new_particles_count)
 
     best_around_count = PARTICLE_COUNT - len(best_indices) - new_particles_count
-    best_around_indices = np.random.choice(best_particles.shape[0], best_around_count)  
+    best_around_indices = np.random.choice(best_particles.shape[0], best_around_count)
     
     best_around_particles = np.empty((best_around_count, 3))
-    best_around_particles[:, 0] = np.random.uniform(-0.05, 0.05, size=best_around_count) 
-    best_around_particles[:, 1] = np.random.uniform(-0.05, 0.05, size=best_around_count) 
+    best_around_particles[:, 0] = np.random.uniform(-0.05, 0.05, size=best_around_count)
+    best_around_particles[:, 1] = np.random.uniform(-0.05, 0.05, size=best_around_count)
     best_around_particles[:, 2] = 0
 
     best_around_particles += best_particles[best_around_indices]
