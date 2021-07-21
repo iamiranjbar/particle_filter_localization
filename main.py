@@ -16,7 +16,6 @@ import random
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
-from multiprocessing import Pool
 
 
 MAP_PATH = './worlds/sample1.world'
@@ -128,68 +127,7 @@ def move_particles(distance):
         particles[i][0] += dx
         particles[i][1] += dy
 
-map_lines = []
-def get_particle_weight(input):
-    global map_lines
-
-    particle, has_collision = input
-
-    if has_collision:
-        return 0
-
-    min_distance = 0.4
-
-    sensor_line = get_sensor_line(particle)
-
-    for line in map_lines:
-        does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
-        distance = 0.4
-        if does_intersect:
-            distance = calculate_distance(particle, intersection_point)
-            min_distance = min(min_distance, distance)
-
-    weight = stats.norm(min_distance, 0.01049).pdf(sensor_range)
-
-    return weight
-
-def resample_particles():
-    global particles
-    global map
-    global map_lines
-
-    map_lines = map.get_lines()
-    weights = []
-    multiprocessing_list = []
-    for i in range(len(particles)):
-        has_collision = map.is_invalid_point(particles[i])
-        multiprocessing_list.append((particles[i], has_collision))
-    
-    print("Starting multiprocessing")
-    pool = Pool(6)
-    weights = np.array(pool.map(get_particle_weight, multiprocessing_list))
-    pool.close()
-    
-    print("Finished multiprocessing")
-    prob_sum = np.sum(weights)
-
-    weights /= prob_sum
-
-    indexes = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=weights)
-    resampled_particles = np.array([particles[i] for i in indexes])
-
-    # add random particles
-    min_x, max_x, min_y, max_y = map.boundary()
-    new_particles_count = int(0.2 * PARTICLE_COUNT)
-    new_particles = np.empty((new_particles_count, 3))
-    new_particles[:, 0] = np.random.uniform(min_x, max_x, size=new_particles_count) + map.global_map_poses[0]
-    new_particles[:, 1] = np.random.uniform(min_x, max_x, size=new_particles_count) + map.global_map_poses[1]
-    new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=new_particles_count) * math.pi / 180.0
-
-    particles = np.concatenate([resampled_particles, new_particles])
-
-
-
-while __name__ == '__main__' and not rospy.is_shutdown():
+while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.initial:
         time.sleep(0.1)
         robot_state = RobotDecisionState.pre_thinking
@@ -256,7 +194,60 @@ while __name__ == '__main__' and not rospy.is_shutdown():
 
         print("Sampling particles")
         robot_state = state_after_stop
-        resample_particles()
+        map_lines = map.get_lines()
+        prob_sum = 0
+        weights = np.zeros(len(particles))
+        for i in range(len(particles)):
+            t = time.time()
+            if map.is_invalid_point(particles[i]):
+                weights[i] = 0
+                continue
+            # print("o" + str(time.time() - t))
+            min_distance = 0.4
+
+            t = time.time()
+            sensor_line = get_sensor_line(particles[i])
+
+            # print("a" + str(time.time() - t))
+            t = time.time()
+
+            for line in map_lines:
+                does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
+                distance = 0.4
+                if does_intersect:
+                    distance = calculate_distance(particles[i], intersection_point)
+                    min_distance = min(min_distance, distance)
+
+            # print("b" + str(time.time() - t))
+            t = time.time()
+            # when no intersection, is 0.4 still correct?
+            weights[i] = stats.norm(min_distance, 0.01049).pdf(sensor_range)
+            prob_sum += weights[i]
+            # print("c" + str(time.time() - t))
+        
+        print("a")
+
+        for i in range(len(particles)):
+            weights[i] /= prob_sum
+
+        print(sum(weights))
+
+        print("b")
+
+        # indexes = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=weights)
+        # particles = np.array([particles[i] for i in indexes])
+
+        print("c")
+
+        # add random particles
+        min_x, max_x, min_y, max_y = map.boundary()
+        new_particles_count = int(0.2 * PARTICLE_COUNT)
+        new_particles = np.empty((new_particles_count, 3))
+        new_particles[:, 0] = np.random.uniform(min_x, max_x, size=new_particles_count) + map.global_map_poses[0]
+        new_particles[:, 1] = np.random.uniform(min_x, max_x, size=new_particles_count) + map.global_map_poses[1]
+        new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=new_particles_count) * math.pi / 180.0
+
+        particles = np.concatenate([particles, new_particles])
 
         # Visualize
         print("Drawing")
@@ -296,9 +287,7 @@ while __name__ == '__main__' and not rospy.is_shutdown():
         if sensor_min_val > (translate_distance * 1.5):
             robot_state = RobotDecisionState.translating
             print("Move forward")
-            print("   Moving particles")
             move_particles(translate_distance)
-            print("   Finished moving particles")
         else:
             robot_state = RobotDecisionState.rotating
 
