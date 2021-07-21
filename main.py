@@ -3,6 +3,7 @@ import time
 import math
 import random
 import numpy as np
+from numpy.lib.function_base import average
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
@@ -294,7 +295,35 @@ def update():
     visualize()
     print("Done")
 
-def check_for_halting():
+def get_best_particles_average_estimate(verbose=False):
+    global particles
+    distances = np.zeros(len(particles))
+    for index, particle in enumerate(particles):
+        distances[index] = sum(np.sqrt((particle[0] - particles[:, 0])**2 + (particle[1] - particles[:, 1])**2))
+    best_indices = (-distances).argsort()[:int(0.3 * PARTICLE_COUNT)]
+    best_particles = particles[best_indices]
+    estimate_x = average(best_particles[:, 0])
+    estimate_y = average(best_particles[:, 1])
+    estimate_theta = average(best_particles[:, 2])
+    estimate = np.array([estimate_x, estimate_y, estimate_theta])
+    if verbose:
+        print(f"Estimate: ({estimate_x}, {estimate_y}. {estimate_theta})")
+
+    return estimate
+
+def get_best_particle_min_sum_distance(verbose=False):
+    global particles
+    distances = np.zeros(len(particles))
+    for index, particle in enumerate(particles):
+        distances[index] = sum(np.sqrt((particle[0] - particles[:, 0])**2 + (particle[1] - particles[:, 1])**2))
+    min_sum_distance_index = np.argmin(distances)
+    estimate = particles[min_sum_distance_index]
+    if verbose:
+        print(f"Estimate: ({estimate[0]}, {estimate[1]}. {estimate[2]})")
+
+    return estimate
+
+def check_for_halting(estimate):
     global robot_state
     robot_state = RobotDecisionState.movement
 
@@ -313,7 +342,10 @@ while not rospy.is_shutdown():
         rotate_particles(rotation_angle)
         move_particles(translate_distance)
         update()
-        check_for_halting()
+        estimate = get_best_particles_average_estimate(verbose=True)
+        # estimate = get_best_particle_min_sum_distance(verbose=True)
+        draw_status(estimate, 'green')
+        check_for_halting(estimate)
     
     elif robot_state == RobotDecisionState.halt:
         pass
