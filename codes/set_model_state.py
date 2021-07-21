@@ -4,8 +4,10 @@ from gazebo_msgs.srv import SetModelState
 
 state_msg = ModelState()
 state_msg.model_name = 'robot'
-state_msg.pose.position.x = 0.2
-state_msg.pose.position.y = 0.7
+state_msg.pose.position.x = -0.2
+state_msg.pose.position.y = 0.15
+# state_msg.pose.position.x = 0.2
+# state_msg.pose.position.y = 0.7
 state_msg.pose.position.z = 0
 state_msg.pose.orientation.x = 0
 state_msg.pose.orientation.y = 0
