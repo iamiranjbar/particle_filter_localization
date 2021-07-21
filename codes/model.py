@@ -5,9 +5,6 @@ class RobotDecisionState:
     movement = 7
     halt = 999
 
-    thinking = 4
-    initial = 0
-    pre_thinking = 3
     making_sure_front_is_accessible_1 = 10
     making_sure_front_is_accessible_2 = 11
 
