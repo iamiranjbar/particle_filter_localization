@@ -55,6 +55,20 @@ def laser_callback(msg):
     global sensor_range
     sensor_range = msg.range
 
+def generate_random_particles(size):
+    global map
+    min_x, max_x, min_y, max_y = map.boundary()
+    new_particles = np.empty((size, 3))
+    new_particles[:, 0] = np.random.uniform(min_x, max_x, size=size)
+    new_particles[:, 1] = np.random.uniform(min_y, max_y, size=size)
+    new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=size) * math.pi / 180.0
+    for index, particle in enumerate(new_particles):
+        while map.is_invalid_point(particle):
+            new_particles[index, 0] = np.random.uniform(min_x, max_x)
+            new_particles[index, 1] = np.random.uniform(min_y, max_y)
+            new_particles[index, 2] = np.random.choice([-90, 90, 180, 0]) * math.pi / 180.0
+    return new_particles
+
 
 robot_state = RobotDecisionState.movement
 rospy.init_node('vector_controller', anonymous=True)
@@ -69,11 +83,7 @@ rotation_angle = 0
 sensor_min_val = 100 # TODO: What is that?
 
 map = Map(MAP_PATH)
-min_x, max_x, min_y, max_y = map.boundary()
-particles = np.empty((PARTICLE_COUNT, 3))
-particles[:, 0] = np.random.uniform(min_x, max_x, size=PARTICLE_COUNT) + map.global_map_poses[0]
-particles[:, 1] = np.random.uniform(min_x, max_x, size=PARTICLE_COUNT) + map.global_map_poses[1]
-particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=PARTICLE_COUNT) * math.pi / 180.0
+particles = generate_random_particles(PARTICLE_COUNT)
 
 
 def get_stop_vel_msg():
@@ -230,15 +240,6 @@ def calculate_particle_weights():
         weights[i] /= prob_sum
 
     return weights
-
-def generate_random_particles(size):
-    global map
-    min_x, max_x, min_y, max_y = map.boundary()
-    new_particles = np.empty((size, 3))
-    new_particles[:, 0] = np.random.uniform(min_x, max_x, size=size) # + map.global_map_poses[0]
-    new_particles[:, 1] = np.random.uniform(min_y, max_y, size=size) # + map.global_map_poses[1]
-    new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=size) * math.pi / 180.0
-    return new_particles
 
 def roullete_wheel_resampling(particles, weights):
     sampled_indices = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=weights)
