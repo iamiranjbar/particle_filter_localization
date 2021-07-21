@@ -2,9 +2,11 @@ from glob import glob
 import time
 import math
 import random
+import traceback
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
 
 import rospy
 from geometry_msgs.msg import Twist
@@ -210,30 +212,48 @@ def translate():
     vel_msg.linear.x = min(TRANSLATION_SPEED_MAX, translation_error * TRANSLATION_ERROR_TO_VELOCITY_COEF)
     velocity_publisher.publish(vel_msg)
 
+map_lines = []
+def calculate_particle_weight(input):
+    global map_lines
+    particle, has_collision, sensor_range = input
+    
+    if has_collision:
+        return 0
+
+    min_distance = 0.4
+    sensor_line = get_sensor_line(particle)
+    for line in map_lines:
+        does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
+        distance = 0.4
+        if does_intersect:
+            distance = calculate_distance(particle, intersection_point)
+            min_distance = min(min_distance, distance)
+
+    return stats.norm(min_distance, 0.01049).pdf(sensor_range)
+
 def calculate_particle_weights():
-    global particles
+    global particles, map_lines
     map_lines = map.get_lines()
     prob_sum = 0
-    weights = np.zeros(len(particles))
+    weights = []
+    multiprocessing_list = []
     for i in range(len(particles)):
-        if map.is_invalid_point(particles[i]):
-            weights[i] = 0
-            continue
+        has_collision = map.is_invalid_point(particles[i])
+        multiprocessing_list.append((particles[i], has_collision, sensor_range))
+    
+    # print("Starting multiprocessing")
+    pool = Pool(8)
+    try:
+        weights = np.array(pool.map(calculate_particle_weight, multiprocessing_list))
+    except:
+        traceback.print_exc()
+    pool.close()
+    pool.join()
+    
+    # print("Finished multiprocessing")
+    prob_sum = np.sum(weights)
 
-        min_distance = 0.4
-        sensor_line = get_sensor_line(particles[i])
-        for line in map_lines:
-            does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
-            distance = 0.4
-            if does_intersect:
-                distance = calculate_distance(particles[i], intersection_point)
-                min_distance = min(min_distance, distance)
-
-        weights[i] = stats.norm(min_distance, 0.01049).pdf(sensor_range)
-        prob_sum += weights[i]
-
-    for i in range(len(particles)):
-        weights[i] /= prob_sum
+    weights /= prob_sum
 
     return weights
 
