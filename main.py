@@ -319,7 +319,7 @@ def best_select_resampling(particles, weights):
     return particles
 
 def visualize():
-    global map, robot_pos_on_estimate, estimate
+    global map, robot_pos_on_estimate, estimate, robot_state
     plt.clf()               
     plt.gca().invert_yaxis()
     map.plot()
@@ -333,6 +333,11 @@ def visualize():
 
     plt.draw()
     plt.pause(0.2)
+
+    if robot_state == RobotDecisionState.halt:
+        plt.savefig('final_position_0.6.png')
+        exit(0)
+        
 
 def get_best_particles_average_estimate(weights, verbose=False):
     global particles
@@ -361,7 +366,19 @@ def get_best_particle_min_sum_distance(verbose=False):
     return estimate
 
 def is_halted():
-    global robot_state, estimate
+    global robot_state, estimate, particles
+
+    close_enough_count = 0
+    for p in particles:
+        dist = calculate_distance(estimate, p)
+        if dist < 0.05:
+            close_enough_count += 1
+
+    print("close_enough_count: " + str(close_enough_count))
+    if close_enough_count > 0.6 * PARTICLE_COUNT:
+        robot_state = RobotDecisionState.halt
+        return True
+    
     robot_state = RobotDecisionState.movement
     return False
 
@@ -394,7 +411,7 @@ def visualize_loop():
 
 visualize_loop_thread = Thread(target=visualize_loop)
 visualize_loop_thread.start()
-
+start_time = time.time()
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
         choose_random_rotation()
@@ -412,4 +429,11 @@ while not rospy.is_shutdown():
         update()
     
     elif robot_state == RobotDecisionState.halt:
-        pass
+        elapsed_time = time.time() - start_time
+        print("")
+        print("Elapsed time: " + str(elapsed_time))
+        print("Robot position: ", robot_position.get_state_list())
+        print("Estimated position: ", estimate)
+        print("Distance Error: " + str(calculate_distance(estimate, robot_position.get_state_list())))
+        time.sleep(3) # Wait for matplotlib thread to save it
+        break
