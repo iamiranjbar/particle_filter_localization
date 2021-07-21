@@ -158,12 +158,12 @@ def choose_random_rotation():
 
 def choose_random_translation():
     global translate_distance
-    translate_distances = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    translate_distances = [0, 0.1, 0.2, 0.3, 0.4]
     translate_distance = random.choice(translate_distances)
     print("Translate " + str(translate_distance) + " meter")
 
 def rotate():
-    global sensor_min_val, robot_state
+    global sensor_min_val, robot_state, command_initial_position
 
     rotation_final_angle = command_initial_position.theta + rotation_angle
     theta_error = normalize_angle(rotation_final_angle - robot_position.theta)
@@ -180,7 +180,7 @@ def rotate():
     velocity_publisher.publish(vel_msg)
 
 def translate():
-    global robot_state, translate_distance
+    global robot_state, translate_distance, command_initial_position
     translation_error = translate_distance - math.sqrt(
             math.pow(robot_position.x - command_initial_position.x, 2) + 
             math.pow(robot_position.y - command_initial_position.y, 2))
@@ -272,6 +272,7 @@ while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
         choose_random_rotation()
         choose_random_translation()
+        command_initial_position = robot_position.copy()
         robot_state = RobotDecisionState.rotating
 
     elif robot_state == RobotDecisionState.rotating:
