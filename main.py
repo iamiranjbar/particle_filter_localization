@@ -132,12 +132,10 @@ def rotate_particles(angle):
     for i in range(len(particles)):
         angle_deg = int(angle * 180 / PI)
         rotation_variance = rotation_rotation_variance[angle_deg]
-        # rotation = np.random.normal(angle, 0.005)
         rotation = np.random.normal(angle, rotation_variance)
 
         translation_mean = rotation_translation_mean[angle_deg]
         translation_variance = rotation_translation_variance[angle_deg]
-        # translation = np.random.normal(0.0001, 0.0015)
         translation = np.random.normal(translation_mean, translation_variance)
 
         particles[i][2] += rotation
@@ -149,12 +147,10 @@ def move_particles(distance):
     global particles
     for i in range(len(particles)):
         translation_variance = translation_translation_variance[distance]
-        # translation = np.random.normal(distance, 0.0025)
         translation = np.random.normal(distance, translation_variance)
 
         rotation_mean = translation_rotation_mean[distance]
         rotation_variance = translation_rotation_variance[distance]
-        # rotation = np.random.normal(0.000123, 0.0006)
         rotation = np.random.normal(rotation_mean, rotation_variance)
 
         particles[i][0] += translation * math.cos(particles[i][2])
