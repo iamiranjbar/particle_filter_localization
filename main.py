@@ -214,10 +214,10 @@ def translate():
     velocity_publisher.publish(vel_msg)
 
 map_lines = []
-def calculate_particle_weight(input):
-    global map_lines
-    particle, has_collision, sensor_range = input
+def calculate_particle_weight(particle):
+    global map_lines, sensor_range, map
     
+    has_collision = map.is_invalid_point(particle)
     if has_collision:
         return 0
 
@@ -239,8 +239,7 @@ def calculate_particle_weights():
     weights = []
     multiprocessing_list = []
     for i in range(len(particles)):
-        has_collision = map.is_invalid_point(particles[i])
-        multiprocessing_list.append((particles[i], has_collision, sensor_range))
+        multiprocessing_list.append(particles[i])
     
     # print("Starting multiprocessing")
     pool = Pool(8)
@@ -250,10 +249,9 @@ def calculate_particle_weights():
         traceback.print_exc()
     pool.close()
     pool.join()
-    
+
     # print("Finished multiprocessing")
     prob_sum = np.sum(weights)
-
     weights /= prob_sum
 
     return weights
@@ -308,10 +306,14 @@ def update():
         return
 
     print("Updating particles")
+    t = time.time()
     weights = calculate_particle_weights()
     # particles = roullete_wheel_resampling(particles, weights)
     particles = best_select_resampling(particles, weights)
-    print("Done")
+    duration = time.time() - t
+    print("Particles updated in " + str(duration) + "s")
+
+    print("")
 
 def check_for_halting():
     global robot_state
