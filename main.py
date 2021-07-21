@@ -434,5 +434,5 @@ while not rospy.is_shutdown():
         print("Robot position: ", robot_position.get_state_list())
         print("Estimated position: ", estimate)
         print("Distance Error: " + str(calculate_distance(estimate, robot_position.get_state_list())))
-        time.sleep(6) # Wait for matplotlib thread to save it
+        time.sleep(10) # Wait for matplotlib thread to save it
         break
