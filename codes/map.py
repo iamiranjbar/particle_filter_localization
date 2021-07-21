@@ -27,7 +27,6 @@ class Map:
     
     def extract_pose_tag(self, child):
         global_map_poses_temp = [float(x) for x in child.text.split(' ')]
-        # TODO: Why?!
         if global_map_poses_temp[0] != 0:
             self.global_map_poses = global_map_poses_temp
 
