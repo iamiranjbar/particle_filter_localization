@@ -367,14 +367,15 @@ def update():
     global robot_state, particles, rotation_angle, translate_distance, estimate
 
     if rotation_angle == 0 and translate_distance == 0:
+        robot_state = RobotDecisionState.movement
         return
 
     print("Updating particles")
     t = time.time()
     weights = calculate_particle_weights()
 
-    estimate = get_best_particles_average_estimate(weights, verbose=True)
-    # estimate = get_best_particle_min_sum_distance(verbose=True)
+    # estimate = get_best_particles_average_estimate(weights, verbose=True)
+    estimate = get_best_particle_min_sum_distance(verbose=True)
     if is_halted():
         return
 
