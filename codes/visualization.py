@@ -32,3 +32,15 @@ def draw_dot_line(start_point, end_point, color):
     start_x, start_y = start_point[0], start_point[1]
     end_x, end_y = end_point[0], end_point[1]
     plt.plot([start_y, end_y], [start_x, end_x], color=color, linestyle=':')
+
+def draw_whole_map(map, particles, robot_position):
+    plt.clf()               
+    plt.gca().invert_yaxis()
+    map.plot()
+    for p in particles:
+        draw_status(p, (1,0,0,0.2))
+    draw_status(robot_position.get_state_list(), 'blue')
+    draw_sensor_line(robot_position.get_state_list())
+
+    plt.draw()
+    plt.pause(0.1)
