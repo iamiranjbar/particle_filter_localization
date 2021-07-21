@@ -2,10 +2,13 @@ from glob import glob
 import time
 import math
 import random
+import traceback
 import numpy as np
 from numpy.lib.function_base import average
 import scipy.stats as stats
+from threading import Thread
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
 
 import rospy
 from geometry_msgs.msg import Twist
@@ -33,6 +36,8 @@ ROTATION_SPEED_MAX = 10
 
 EXTRA_ANGLE_CHECK = False
 EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
+
+ACTION_TIMEOUT = 3
 
 PARTICLE_COUNT = 500
 
@@ -77,6 +82,7 @@ odom_sub = rospy.Subscriber("/odom", Odometry, new_odometry)
 laser_sub = rospy.Subscriber('/vector/laser', Range, laser_callback)
 velocity_publisher = rospy.Publisher('/vector/cmd_vel', Twist, queue_size=10)
 
+command_time = 0
 command_initial_position = robot_position.copy()
 translate_distance = 0
 rotation_angle = 0
@@ -132,10 +138,11 @@ def move_particles(distance):
         particles[i][2] = normalize_angle(particles[i][2])
 
 def robot_extra_check():
-    global sensor_min_val, command_initial_position, robot_state, state_after_stop
+    global sensor_min_val, command_initial_position, robot_state, state_after_stop, command_time
     sensor_min_val = sensor_range
     if EXTRA_ANGLE_CHECK and sensor_range > 1.5 * translate_distance:
         command_initial_position = robot_position.copy()
+        command_time = time.time()
         robot_state = RobotDecisionState.rotating
         rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
         state_after_stop = RobotDecisionState.making_sure_front_is_accessible_1
@@ -144,36 +151,40 @@ def robot_extra_check():
         robot_state = RobotDecisionState.thinking
 
 def front_is_accessible_1():
-    global command_initial_position, robot_state, state_after_stop
+    global command_initial_position, robot_state, state_after_stop, command_time
     command_initial_position = robot_position.copy()
+    command_time = time.time()
     robot_state = RobotDecisionState.rotating
     rotation_angle = 2 * EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
     state_after_stop = RobotDecisionState.making_sure_front_is_accessible_2
     rotate_particles(rotation_angle)
 
 def front_is_accessible_2():
-    global command_initial_position, robot_state, state_after_stop
+    global command_initial_position, robot_state, state_after_stop, command_time
     command_initial_position = robot_position.copy()
+    command_time = time.time()
     robot_state = RobotDecisionState.rotating
     rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
     state_after_stop = RobotDecisionState.thinking
     rotate_particles(rotation_angle)
 
 def choose_random_rotation():
-    global rotation_angle, robot_position, command_initial_position
+    global rotation_angle, robot_position, command_initial_position, command_time
     angles_deg = [0, 90, -90]
     angle_deg = random.choice(angles_deg)
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
     command_initial_position = robot_position.copy()
+    command_time = time.time()
 
 def choose_random_translation():
-    global translate_distance, sensor_range, robot_position, command_initial_position
+    global translate_distance, sensor_range, robot_position, command_initial_position, command_time
     translate_distances = [0, 0.05, 0.1, 0.15]
     translate_distance = random.choice(translate_distances)
     if sensor_range < (translate_distance + 0.025):
         translate_distance = 0
     command_initial_position = robot_position.copy()
+    command_time = time.time()
     print("Translate " + str(translate_distance) + " meter")
 
 def rotate():
@@ -182,7 +193,7 @@ def rotate():
     rotation_final_angle = command_initial_position.theta + rotation_angle
     theta_error = normalize_angle(rotation_final_angle - robot_position.theta)
 
-    if abs(theta_error) < ROTATION_ERROR_TOLERANCE:
+    if abs(theta_error) < ROTATION_ERROR_TOLERANCE or time.time() - command_time > ACTION_TIMEOUT:
         vel_msg = get_stop_vel_msg()
         velocity_publisher.publish(vel_msg)
         time.sleep(0.1)
@@ -195,12 +206,12 @@ def rotate():
     velocity_publisher.publish(vel_msg)
 
 def translate():
-    global robot_state, translate_distance, command_initial_position
+    global robot_state, translate_distance, command_initial_position, command_time
     translation_error = translate_distance - math.sqrt(
             math.pow(robot_position.x - command_initial_position.x, 2) + 
             math.pow(robot_position.y - command_initial_position.y, 2))
 
-    if abs(translation_error) <= TRANSLATION_ERROR_TOLERANCE:
+    if abs(translation_error) <= TRANSLATION_ERROR_TOLERANCE or time.time() - command_time > ACTION_TIMEOUT:
         vel_msg = get_stop_vel_msg()
         velocity_publisher.publish(vel_msg)
         time.sleep(0.1)
@@ -211,30 +222,46 @@ def translate():
     vel_msg.linear.x = min(TRANSLATION_SPEED_MAX, translation_error * TRANSLATION_ERROR_TO_VELOCITY_COEF)
     velocity_publisher.publish(vel_msg)
 
+map_lines = []
+def calculate_particle_weight(particle):
+    global map_lines, sensor_range, map
+    
+    has_collision = map.is_invalid_point(particle)
+    if has_collision:
+        return 0
+
+    min_distance = 0.4
+    sensor_line = get_sensor_line(particle)
+    for line in map_lines:
+        does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
+        distance = 0.4
+        if does_intersect:
+            distance = calculate_distance(particle, intersection_point)
+            min_distance = min(min_distance, distance)
+
+    return stats.norm(min_distance, 0.01049).pdf(sensor_range)
+
 def calculate_particle_weights():
-    global particles
+    global particles, map_lines
     map_lines = map.get_lines()
     prob_sum = 0
-    weights = np.zeros(len(particles))
+    weights = []
+    multiprocessing_list = []
     for i in range(len(particles)):
-        if map.is_invalid_point(particles[i]):
-            weights[i] = 0
-            continue
+        multiprocessing_list.append(particles[i])
+    
+    # print("Starting multiprocessing")
+    pool = Pool(8)
+    try:
+        weights = np.array(pool.map(calculate_particle_weight, multiprocessing_list))
+    except:
+        traceback.print_exc()
+    pool.close()
+    pool.join()
 
-        min_distance = 0.4
-        sensor_line = get_sensor_line(particles[i])
-        for line in map_lines:
-            does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
-            distance = 0.4
-            if does_intersect:
-                distance = calculate_distance(particles[i], intersection_point)
-                min_distance = min(min_distance, distance)
-
-        weights[i] = stats.norm(min_distance, 0.01049).pdf(sensor_range)
-        prob_sum += weights[i]
-
-    for i in range(len(particles)):
-        weights[i] /= prob_sum
+    # print("Finished multiprocessing")
+    prob_sum = np.sum(weights)
+    weights /= prob_sum
 
     return weights
 
@@ -288,12 +315,14 @@ def update():
         return
 
     print("Updating particles")
+    t = time.time()
     weights = calculate_particle_weights()
     # particles = roullete_wheel_resampling(particles, weights)
     particles = best_select_resampling(particles, weights)
-    print("Visualizing")
-    visualize()
-    print("Done")
+    duration = time.time() - t
+    print("Particles updated in " + str(duration) + "s")
+
+    print("")
 
 def get_best_particles_average_estimate(verbose=False):
     global particles
@@ -326,6 +355,14 @@ def get_best_particle_min_sum_distance(verbose=False):
 def check_for_halting(estimate):
     global robot_state
     robot_state = RobotDecisionState.movement
+
+def visualize_loop():
+    while True:
+        visualize()
+        time.sleep(2)
+
+visualize_loop_thread = Thread(target=visualize_loop)
+visualize_loop_thread.start()
 
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
