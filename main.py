@@ -105,21 +105,22 @@ def normalize_angle(angle):
 def rotate_particles(angle):
     global particles
     for i in range(len(particles)):
-        particles[i][2] += angle
-        # TODO: Add normal noise model
-        while particles[i][2] > math.pi:
-            particles[i][2] -= 2 * math.pi
-        while particles[i][2] < -math.pi:
-            particles[i][2] += 2 * math.pi
+        rotation = np.random.normal(angle, 0.005)
+        translation = np.random.normal(0.0001, 0.0015)
+        particles[i][2] += rotation
+        particles[i][2] = normalize_angle(particles[i][2])
+        particles[i][0] += translation * math.cos(angle)
+        particles[i][1] += translation * math.sin(angle)
 
 def move_particles(distance):
     global particles
     for i in range(len(particles)):
-        dx = distance * math.cos(particles[i][2])
-        dy = distance * math.sin(particles[i][2])
-        # TODO: Add normal noise model
-        particles[i][0] += dx
-        particles[i][1] += dy
+        translation = np.random.normal(distance, 0.0025)
+        rotation = np.random.normal(0.000123, 0.0006)
+        particles[i][0] += translation * math.cos(particles[i][2])
+        particles[i][1] += translation * math.sin(particles[i][2])
+        particles[i][2] += rotation
+        particles[i][2] = normalize_angle(particles[i][2])
 
 def robot_extra_check():
     global sensor_min_val, command_initial_position, robot_state, state_after_stop

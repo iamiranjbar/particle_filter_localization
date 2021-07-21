@@ -121,7 +121,6 @@ class Map:
 
         for points in self.rectangles:
             for point in points:
-                # not In chapas
                 xs.append(float(point[0]))
                 ys.append(float(point[1]))
 
