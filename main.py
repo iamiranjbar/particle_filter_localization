@@ -196,7 +196,7 @@ def front_is_accessible_2():
 def choose_random_rotation():
     global rotation_angle, robot_position, command_initial_position, command_time
     angles_deg = [0, 90, -90]
-    angle_deg = random.choice(angles_deg)
+    angle_deg = random.choice(angles_deg, p=[0.6, 0.2, 0.2])
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
     command_initial_position = robot_position.copy()
