@@ -90,6 +90,7 @@ rotation_angle = 0
 map = Map(MAP_PATH)
 particles = generate_random_particles(PARTICLE_COUNT)
 
+estimate = []
 
 def get_stop_vel_msg():
     vel_msg = Twist()
@@ -295,7 +296,7 @@ def best_select_resampling(particles, weights):
     return particles
 
 def visualize():
-    global map, robot_position
+    global map, robot_position, estimate
     plt.clf()               
     plt.gca().invert_yaxis()
     map.plot()
@@ -304,6 +305,7 @@ def visualize():
 
     draw_status(robot_position.get_state_list(), 'blue')
     draw_sensor_line(robot_position.get_state_list())
+    draw_status(estimate, 'green')
 
     plt.draw()
     plt.pause(0.2)
@@ -381,7 +383,6 @@ while not rospy.is_shutdown():
         update()
         estimate = get_best_particles_average_estimate(verbose=True)
         # estimate = get_best_particle_min_sum_distance(verbose=True)
-        draw_status(estimate, 'green')
         check_for_halting(estimate)
     
     elif robot_state == RobotDecisionState.halt:
