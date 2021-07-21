@@ -206,7 +206,7 @@ def choose_random_translation():
     global translate_distance, sensor_range, robot_position, command_initial_position, command_time
     translate_distances = [0, 0.05, 0.1, 0.15, 0.2, 0.3]
     translate_distance = random.choice(translate_distances)
-    if sensor_range < (translate_distance + 0.025):
+    if sensor_range < (translate_distance + 0.043):
         translate_distance = 0
     command_initial_position = robot_position.copy()
     command_time = time.time()
