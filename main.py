@@ -91,9 +91,9 @@ map = Map(MAP_PATH)
 particles = generate_random_particles(PARTICLE_COUNT)
 
 estimate = []
-translation_translation_variance = {0.05: 3.5e-5, 0.1: 3.3e-5, 0.15:3.2e-5, 0.2:3.14e-5, 0.3:2.98e-5}
-translation_rotation_mean = {0.05: 0.03, 0.1: 0.05, 0.15: 0.1, 0.2: 0.15, 0.3: 0.19}
-translation_rotation_variance = {0.05: 0.05, 0.1: 0.09, 0.15: 0.2, 0.2: 0.36, 0.3: 0.67}
+translation_translation_variance = {0: 0, 0.05: 3.5e-5, 0.1: 3.3e-5, 0.15:3.2e-5, 0.2:3.14e-5, 0.3:2.98e-5}
+translation_rotation_mean = {0: 0, 0.05: 0.03, 0.1: 0.05, 0.15: 0.1, 0.2: 0.15, 0.3: 0.19}
+translation_rotation_variance = {0: 0, 0.05: 0.05, 0.1: 0.09, 0.15: 0.2, 0.2: 0.36, 0.3: 0.67}
 
 rotation_rotation_variance = {0: 0, 90: 0.005, -90: 0.006}
 rotation_translation_mean = {0: 0, 90: 0.0002, -90: 0.0001}
@@ -128,12 +128,13 @@ def normalize_angle(angle):
 def rotate_particles(angle):
     global particles
     for i in range(len(particles)):
-        rotation_variance = rotation_rotation_variance[angle]
+        angle_deg = int(angle * 180 / PI)
+        rotation_variance = rotation_rotation_variance[angle_deg]
         # rotation = np.random.normal(angle, 0.005)
         rotation = np.random.normal(angle, rotation_variance)
 
-        translation_mean = rotation_translation_mean[angle]
-        translation_variance = rotation_translation_variance[angle]
+        translation_mean = rotation_translation_mean[angle_deg]
+        translation_variance = rotation_translation_variance[angle_deg]
         # translation = np.random.normal(0.0001, 0.0015)
         translation = np.random.normal(translation_mean, translation_variance)
 
