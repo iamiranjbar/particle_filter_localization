@@ -160,7 +160,7 @@ def front_is_accessible_2():
 
 def choose_random_rotation():
     global rotation_angle, robot_position, command_initial_position
-    angles_deg = [0, 90, -90, 180]
+    angles_deg = [0, 90, -90]
     angle_deg = random.choice(angles_deg)
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
@@ -168,7 +168,7 @@ def choose_random_rotation():
 
 def choose_random_translation():
     global translate_distance, sensor_range, robot_position, command_initial_position
-    translate_distances = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4]
+    translate_distances = [0, 0.05, 0.1, 0.15]
     translate_distance = random.choice(translate_distances)
     if sensor_range < (translate_distance + 0.025):
         translate_distance = 0
@@ -283,12 +283,18 @@ def visualize():
     plt.pause(0.2)
 
 def update():
-    global robot_state, particles
+    global robot_state, particles, rotation_angle, translate_distance
 
+    if rotation_angle == 0 and translate_distance == 0:
+        return
+
+    print("Updating particles")
     weights = calculate_particle_weights()
     # particles = roullete_wheel_resampling(particles, weights)
     particles = best_select_resampling(particles, weights)
+    print("Visualizing")
     visualize()
+    print("Done")
 
 def check_for_halting():
     global robot_state
