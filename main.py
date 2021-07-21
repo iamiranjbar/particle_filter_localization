@@ -4,8 +4,7 @@ from codes.model import RobotDecisionState, RobotWorldState
 from codes.map import Map
 from codes.particle import Particle
 from codes.map_utils import find_intersection, calculate_distance
-from codes.visualization import get_sensor_line, draw_status, draw_sensor_line, draw_whole_map
-from codes.particle_utils import move_particles, rotate_particles, generate_particles, resample_particles
+from codes.visualization import get_sensor_line, draw_status, draw_sensor_line
 import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
@@ -17,6 +16,7 @@ import random
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
 
 
 MAP_PATH = './worlds/sample1.world'
@@ -101,7 +101,93 @@ state_after_stop = RobotDecisionState.pre_thinking
 sensor_min_val = 100
 
 map = Map(MAP_PATH)
-particles = generate_particles(map, PARTICLE_COUNT)
+min_x, max_x, min_y, max_y = map.boundary()
+particles = np.empty((PARTICLE_COUNT, 3))
+particles[:, 0] = np.random.uniform(min_x, max_x, size=PARTICLE_COUNT) + map.global_map_poses[0]
+particles[:, 1] = np.random.uniform(min_x, max_x, size=PARTICLE_COUNT) + map.global_map_poses[1]
+particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=PARTICLE_COUNT) * math.pi / 180.0
+
+def rotate_particles(angle):
+    global particles
+    for i in range(len(particles)):
+        particles[i][2] += angle
+        # TODO: Add normal noise model
+        while particles[i][2] > math.pi:
+            particles[i][2] -= 2 * math.pi
+        while particles[i][2] < -math.pi:
+            particles[i][2] += 2 * math.pi
+
+def move_particles(distance):
+    global particles
+    for i in range(len(particles)):
+        dx = distance * math.cos(particles[i][2])
+        dy = distance * math.sin(particles[i][2])
+
+        # TODO: Add normal noise model
+
+        particles[i][0] += dx
+        particles[i][1] += dy
+
+map_lines = []
+def get_particle_weight(input):
+    global map_lines
+
+    particle, has_collision = input
+
+    if has_collision:
+        return 0
+
+    min_distance = 0.4
+
+    sensor_line = get_sensor_line(particle)
+
+    for line in map_lines:
+        does_intersect, intersection_point = find_intersection(sensor_line[0], sensor_line[1], line[0], line[1]) 
+        distance = 0.4
+        if does_intersect:
+            distance = calculate_distance(particle, intersection_point)
+            min_distance = min(min_distance, distance)
+
+    weight = stats.norm(min_distance, 0.01049).pdf(sensor_range)
+
+    return weight
+
+def resample_particles():
+    global particles
+    global map
+    global map_lines
+
+    map_lines = map.get_lines()
+    weights = []
+    multiprocessing_list = []
+    for i in range(len(particles)):
+        has_collision = map.is_invalid_point(particles[i])
+        multiprocessing_list.append((particles[i], has_collision))
+    
+    print("Starting multiprocessing")
+    pool = Pool(6)
+    weights = np.array(pool.map(get_particle_weight, multiprocessing_list))
+    pool.close()
+    
+    print("Finished multiprocessing")
+    prob_sum = np.sum(weights)
+
+    weights /= prob_sum
+
+    indexes = np.random.choice(PARTICLE_COUNT, int(0.8 * PARTICLE_COUNT), p=weights)
+    resampled_particles = np.array([particles[i] for i in indexes])
+
+    # add random particles
+    min_x, max_x, min_y, max_y = map.boundary()
+    new_particles_count = int(0.2 * PARTICLE_COUNT)
+    new_particles = np.empty((new_particles_count, 3))
+    new_particles[:, 0] = np.random.uniform(min_x, max_x, size=new_particles_count) + map.global_map_poses[0]
+    new_particles[:, 1] = np.random.uniform(min_x, max_x, size=new_particles_count) + map.global_map_poses[1]
+    new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=new_particles_count) * math.pi / 180.0
+
+    particles = np.concatenate([resampled_particles, new_particles])
+
+
 
 while __name__ == '__main__' and not rospy.is_shutdown():
     if robot_state == RobotDecisionState.initial:
@@ -119,7 +205,7 @@ while __name__ == '__main__' and not rospy.is_shutdown():
             angle_deg = random.choice(angles_deg)
             print("Rotate " + str(angle_deg) + "deg")
             rotation_angle = angle_deg * PI / 180
-            particles = rotate_particles(particles, rotation_angle)
+            rotate_particles(rotation_angle)
             continue
 
 
@@ -129,7 +215,7 @@ while __name__ == '__main__' and not rospy.is_shutdown():
             robot_state = RobotDecisionState.rotating
             rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
             state_after_stop = RobotDecisionState.making_sure_front_is_accessible_1
-            particles = rotate_particles(particles, rotation_angle)
+            rotate_particles(rotation_angle)
         else:
             robot_state = RobotDecisionState.thinking
 
@@ -170,11 +256,20 @@ while __name__ == '__main__' and not rospy.is_shutdown():
 
         print("Sampling particles")
         robot_state = state_after_stop
-        particles = resample_particles(particles, map, sensor_range)
+        resample_particles()
 
         # Visualize
         print("Drawing")
-        draw_whole_map(map, particles, robot_position)
+        plt.clf()               
+        plt.gca().invert_yaxis()
+        map.plot()
+        for p in particles:
+            draw_status(p, (1,0,0,0.2))
+        draw_status(robot_position.get_state_list(), 'blue')
+        draw_sensor_line(robot_position.get_state_list())
+
+        plt.draw()
+        plt.pause(0.2)
 
         print("Stop")
 
@@ -183,14 +278,14 @@ while __name__ == '__main__' and not rospy.is_shutdown():
         robot_state = RobotDecisionState.rotating
         rotation_angle = 2 * EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
         state_after_stop = RobotDecisionState.making_sure_front_is_accessible_2
-        particles = rotate_particles(particles, rotation_angle)
+        rotate_particles(rotation_angle)
 
     elif robot_state == RobotDecisionState.making_sure_front_is_accessible_2:
         command_initial_position = robot_position.copy()
         robot_state = RobotDecisionState.rotating
         rotation_angle = -EXTRA_ANGLE_CHECK_ANGLE_DEG * PI / 180
         state_after_stop = RobotDecisionState.thinking
-        particles = rotate_particles(particles, rotation_angle)
+        rotate_particles(rotation_angle)
 
     elif robot_state == RobotDecisionState.thinking:
         print("Sensor min val:" + str(sensor_min_val))
@@ -202,7 +297,7 @@ while __name__ == '__main__' and not rospy.is_shutdown():
             robot_state = RobotDecisionState.translating
             print("Move forward")
             print("   Moving particles")
-            particles = move_particles(particles, translate_distance)
+            move_particles(translate_distance)
             print("   Finished moving particles")
         else:
             robot_state = RobotDecisionState.rotating
