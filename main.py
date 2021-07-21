@@ -150,16 +150,20 @@ def front_is_accessible_2():
     rotate_particles(rotation_angle)
 
 def choose_random_rotation():
-    global rotation_angle
+    global rotation_angle, robot_position, command_initial_position
     angles_deg = [0, 90, -90, 180]
     angle_deg = random.choice(angles_deg)
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
+    command_initial_position = robot_position.copy()
 
 def choose_random_translation():
-    global translate_distance
-    translate_distances = [0, 0.1, 0.2, 0.3, 0.4]
+    global translate_distance, sensor_range, robot_position, command_initial_position
+    translate_distances = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4]
     translate_distance = random.choice(translate_distances)
+    if sensor_range < (translate_distance + 0.025):
+        translate_distance = 0
+    command_initial_position = robot_position.copy()
     print("Translate " + str(translate_distance) + " meter")
 
 def rotate():
@@ -173,6 +177,7 @@ def rotate():
         velocity_publisher.publish(vel_msg)
         time.sleep(0.1)
         robot_state = RobotDecisionState.translating
+        choose_random_translation()
         return
 
     vel_msg = get_stop_vel_msg()
@@ -229,8 +234,8 @@ def generate_random_particles(size):
     global map
     min_x, max_x, min_y, max_y = map.boundary()
     new_particles = np.empty((size, 3))
-    new_particles[:, 0] = np.random.uniform(min_x, max_x, size=size) + map.global_map_poses[0]
-    new_particles[:, 1] = np.random.uniform(min_y, max_y, size=size) + map.global_map_poses[1]
+    new_particles[:, 0] = np.random.uniform(min_x, max_x, size=size) # + map.global_map_poses[0]
+    new_particles[:, 1] = np.random.uniform(min_y, max_y, size=size) # + map.global_map_poses[1]
     new_particles[:, 2] = np.random.choice([-90, 90, 180, 0], size=size) * math.pi / 180.0
     return new_particles
 
@@ -270,9 +275,8 @@ def check_for_halting():
 
 while not rospy.is_shutdown():
     if robot_state == RobotDecisionState.movement:
+        # time.sleep(5)
         choose_random_rotation()
-        choose_random_translation()
-        command_initial_position = robot_position.copy()
         robot_state = RobotDecisionState.rotating
 
     elif robot_state == RobotDecisionState.rotating:
