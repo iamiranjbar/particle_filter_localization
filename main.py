@@ -22,7 +22,7 @@ from codes.map_utils import find_intersection, calculate_distance
 from codes.visualization import get_sensor_line, draw_status, draw_sensor_line
 
 
-MAP_PATH = './worlds/sample4.world'
+MAP_PATH = './worlds/sample5.world'
 
 PI = math.pi
 
@@ -39,7 +39,7 @@ EXTRA_ANGLE_CHECK_ANGLE_DEG = 15
 
 ACTION_TIMEOUT = 3
 
-PARTICLE_COUNT = 1000
+PARTICLE_COUNT = 500
 
 robot_position = RobotWorldState()
 robot_pos_on_estimate = robot_position.copy()
@@ -299,10 +299,10 @@ def roullete_wheel_resampling(particles, weights):
     return particles
 
 def best_select_resampling(particles, weights):
-    best_indices = (-weights).argsort()[:int(0.3 * PARTICLE_COUNT)]
+    best_indices = (-weights).argsort()[:int(0.4 * PARTICLE_COUNT)]
     best_particles = particles[best_indices]
 
-    new_particles_count = int(0.2 * PARTICLE_COUNT)
+    new_particles_count = int(0.1 * PARTICLE_COUNT)
     new_particles = generate_random_particles(new_particles_count)
 
     best_around_count = PARTICLE_COUNT - len(best_indices) - new_particles_count
