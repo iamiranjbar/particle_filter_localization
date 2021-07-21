@@ -196,7 +196,7 @@ def front_is_accessible_2():
 def choose_random_rotation():
     global rotation_angle, robot_position, command_initial_position, command_time
     angles_deg = [0, 90, -90]
-    angle_deg = random.choice(angles_deg, p=[0.6, 0.2, 0.2])
+    angle_deg = np.random.choice(angles_deg, p=[0.6, 0.2, 0.2])
     print("Rotate " + str(angle_deg) + " degree")
     rotation_angle = angle_deg * PI / 180
     command_initial_position = robot_position.copy()
@@ -309,8 +309,8 @@ def best_select_resampling(particles, weights):
     best_around_indices = np.random.choice(best_particles.shape[0], best_around_count)
     
     best_around_particles = np.empty((best_around_count, 3))
-    best_around_particles[:, 0] = np.random.uniform(-0.05, 0.05, size=best_around_count)
-    best_around_particles[:, 1] = np.random.uniform(-0.05, 0.05, size=best_around_count)
+    best_around_particles[:, 0] = np.random.uniform(-0.025, 0.025, size=best_around_count)
+    best_around_particles[:, 1] = np.random.uniform(-0.025, 0.025, size=best_around_count)
     best_around_particles[:, 2] = 0
 
     best_around_particles += best_particles[best_around_indices]
@@ -336,7 +336,6 @@ def visualize():
 
     if robot_state == RobotDecisionState.halt:
         plt.savefig('final_position_0.6.png')
-        exit(0)
         
 
 def get_best_particles_average_estimate(weights, verbose=False):
@@ -435,5 +434,5 @@ while not rospy.is_shutdown():
         print("Robot position: ", robot_position.get_state_list())
         print("Estimated position: ", estimate)
         print("Distance Error: " + str(calculate_distance(estimate, robot_position.get_state_list())))
-        time.sleep(3) # Wait for matplotlib thread to save it
+        time.sleep(6) # Wait for matplotlib thread to save it
         break
